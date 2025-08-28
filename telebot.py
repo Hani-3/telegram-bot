@@ -2,7 +2,7 @@ import logging
 from aiogram import Bot, Dispatcher, executor, types
 from dotenv import load_dotenv
 import os
-import openai
+from groq import Groq
 import sys
 
 class Reference:
@@ -13,14 +13,14 @@ class Reference:
         self.response = ""
 
 load_dotenv()
-openai.api_key = os.getenv("OPENAI_API_KEY")
+groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 reference = Reference()
 
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 
 #Model name
-MODEL_NAME = "gpt-3.5-turbo"
+MODEL_NAME = "llama3-8b-8192"
 
 # Initializee bot and dispatcher
 bot = Bot(token=TOKEN)
@@ -37,7 +37,7 @@ async def welcome(message: types.Message):
     """
     This handler receives messages with '/start' or '/help' cpmmand
     """
-    await message.reply("Hi\nI am Tele Bot!\Created by Hani. How can i assist you?")
+    await message.reply("Hi\nI am Tele Bot!\nCreated by Hani. How can i assist you?")
 
 @dispatcher.message_handler(commands=['clear'])
 async def clear(message: types.Message):
@@ -68,15 +68,15 @@ async def chatgpt(message: types.Message):
     A handler to process the user's input and generate a response using the chatGPT API
     """
     print(f">>> USER: \n\t{message.text}")
-    response = openai.ChatCompletion.create(
+    response = groq_client.chat.completions.create(
         model = MODEL_NAME,
         messages = [
             {"role": "assistant", "content": reference.response}, #role assistant
             {"role": "user", "content": message.text} #our query
         ]
     )
-    reference.response = response.choices[0]['message']['content']
-    print(f">>> chatGPT: \n\t{reference.response}")
+    reference.response = response.choices[0].message.content
+    print(f">>> Groq: \n\t{reference.response}")
     await bot.send_message(chat_id = message.chat.id, text = reference.response)
 
 if __name__ == "__main__":
